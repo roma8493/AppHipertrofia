@@ -5,138 +5,176 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Hipertrofia Científica App</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <style>
-    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
-    .card { background-color: #1e293b; border: 1px solid #334155; }
+    body { background: linear-gradient(180deg, #0f172a 0%, #020617 100%); color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
+    .card { background-color: #1e293b; border: 1px solid #334155; transition: all 0.2s; }
+    .card:hover { border-color: #475569; }
     .accent-btn { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
-    .accent-btn:hover { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); }
+    .accent-btn:hover { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); transform: translateY(-1px); }
+    .accent-btn:active { transform: translateY(0); }
+    .tab-btn { transition: all 0.2s; white-space: nowrap; }
+    .progress-bar { height: 8px; border-radius: 9999px; background: #1e293b; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 9999px; transition: width 0.5s ease; }
+    #timer-box { animation: pulse-border 2s infinite; }
+    @keyframes pulse-border { 0%,100% { border-color: rgba(59,130,246,0.4); } 50% { border-color: rgba(59,130,246,0.8); } }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 100; padding: 12px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 10px 40px rgba(0,0,0,0.4); animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { opacity:0; transform: translateX(-50%) translateY(20px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
   </style>
 </head>
-<body class="p-4 md:p-8 max-w-5xl mx-auto pb-24">
-  <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-slate-800 pb-6">
+<body class="p-3 md:p-6 max-w-5xl mx-auto pb-28">
+  <!-- HEADER -->
+  <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-800 pb-5">
     <div>
-      <h1 class="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+      <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
         <i class="fa-solid fa-dumbbell text-blue-500"></i> Hypertrophy Science
       </h1>
-      <p class="text-sm text-slate-400 mt-1">Motor Basado en Evidencia para Atletas Naturales</p>
+      <p class="text-xs md:text-sm text-slate-400 mt-1">Motor Basado en Evidencia · Atletas Naturales</p>
     </div>
-    <div class="flex gap-4">
-      <div class="card px-5 py-3 rounded-2xl flex items-center gap-3 shadow-lg shadow-blue-500/5">
-        <i class="fa-solid fa-fire text-amber-500 text-2xl animate-pulse"></i>
+    <div class="flex gap-3 flex-wrap">
+      <div class="card px-4 py-2.5 rounded-2xl flex items-center gap-3">
+        <i class="fa-solid fa-fire text-amber-500 text-xl animate-pulse"></i>
         <div>
-          <div class="text-xs text-slate-400 uppercase font-semibold">Racha de Consistencia</div>
-          <div id="racha-val" class="text-xl font-black text-amber-400">0 Días</div>
+          <div class="text-[10px] text-slate-400 uppercase font-semibold">Racha</div>
+          <div id="racha-val" class="text-lg font-black text-amber-400">0 Días</div>
         </div>
+      </div>
+      <div id="deload-badge" class="hidden card px-4 py-2.5 rounded-2xl flex items-center gap-2 border-amber-500/50 bg-amber-950/30">
+        <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+        <div class="text-xs font-bold text-amber-300">Sugerencia Deload</div>
       </div>
     </div>
   </header>
 
-  <nav class="flex gap-2 mb-6 border-b border-slate-800 pb-3 overflow-x-auto">
-    <button onclick="switchTab('tab-entrenar')" id="btn-tab-entrenar" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-blue-600 text-white flex items-center gap-2 transition">
-      <i class="fa-solid fa-play"></i> Entrenar Hoy
+  <!-- NAV -->
+  <nav class="flex gap-1.5 mb-5 border-b border-slate-800 pb-3 overflow-x-auto scrollbar-hide">
+    <button onclick="switchTab('tab-entrenar')" id="btn-tab-entrenar" class="tab-btn px-4 py-2 rounded-xl font-bold text-xs md:text-sm bg-blue-600 text-white flex items-center gap-1.5">
+      <i class="fa-solid fa-play"></i> Entrenar
     </button>
-    <button onclick="switchTab('tab-volumen')" id="btn-tab-volumen" class="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-400 hover:text-white flex items-center gap-2 transition">
-      <i class="fa-solid fa-chart-pie"></i> Volumen (MEV/MAV)
+    <button onclick="switchTab('tab-volumen')" id="btn-tab-volumen" class="tab-btn px-4 py-2 rounded-xl font-bold text-xs md:text-sm text-slate-400 hover:text-white flex items-center gap-1.5">
+      <i class="fa-solid fa-chart-pie"></i> Volumen
     </button>
-    <button onclick="switchTab('tab-ejercicios')" id="btn-tab-ejercicios" class="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-400 hover:text-white flex items-center gap-2 transition">
-      <i class="fa-solid fa-book-medical"></i> Catálogo SFR
+    <button onclick="switchTab('tab-progreso')" id="btn-tab-progreso" class="tab-btn px-4 py-2 rounded-xl font-bold text-xs md:text-sm text-slate-400 hover:text-white flex items-center gap-1.5">
+      <i class="fa-solid fa-chart-line"></i> Progreso
     </button>
-    <button onclick="switchTab('tab-custom')" id="btn-tab-custom" class="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-400 hover:text-white flex items-center gap-2 transition">
-      <i class="fa-solid fa-plus-circle"></i> Crear Ejercicio
+    <button onclick="switchTab('tab-historial')" id="btn-tab-historial" class="tab-btn px-4 py-2 rounded-xl font-bold text-xs md:text-sm text-slate-400 hover:text-white flex items-center gap-1.5">
+      <i class="fa-solid fa-clock-rotate-left"></i> Historial
+    </button>
+    <button onclick="switchTab('tab-ejercicios')" id="btn-tab-ejercicios" class="tab-btn px-4 py-2 rounded-xl font-bold text-xs md:text-sm text-slate-400 hover:text-white flex items-center gap-1.5">
+      <i class="fa-solid fa-book-medical"></i> Catálogo
+    </button>
+    <button onclick="switchTab('tab-custom')" id="btn-tab-custom" class="tab-btn px-4 py-2 rounded-xl font-bold text-xs md:text-sm text-slate-400 hover:text-white flex items-center gap-1.5">
+      <i class="fa-solid fa-plus-circle"></i> Custom
     </button>
   </nav>
 
-  <main id="tab-entrenar" class="space-y-6">
-    <div class="card p-6 rounded-2xl">
-      <label class="block text-sm font-semibold text-slate-300 mb-2">Seleccionar Rutina:</label>
-      <select id="select-rutina" onchange="renderRutina()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
-        <option value="">Cargando rutinas...</option>
-      </select>
+  <!-- TAB ENTRENAR -->
+  <main id="tab-entrenar" class="space-y-5">
+    <div class="card p-5 rounded-2xl">
+      <label class="block text-sm font-semibold text-slate-300 mb-2">Seleccionar Rutina</label>
+      <select id="select-rutina" onchange="renderRutina()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
     </div>
-    <div id="timer-box" class="hidden card p-5 rounded-2xl border-blue-500/40 bg-blue-950/20 flex items-center justify-between">
+    <div id="timer-box" class="hidden card p-4 rounded-2xl border-blue-500/40 bg-blue-950/20 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <i class="fa-solid fa-stopwatch text-blue-400 text-2xl"></i>
         <div>
-          <div class="text-xs text-blue-300 font-medium">Recuperación de Fosfocreatina (PCr)</div>
-          <div id="timer-display" class="text-2xl font-black text-white">02:30</div>
+          <div class="text-xs text-blue-300 font-medium">Recuperación PCr</div>
+          <div id="timer-display" class="text-2xl font-black text-white tracking-wider">02:30</div>
         </div>
       </div>
-      <button onclick="stopTimer()" class="text-slate-400 hover:text-white text-sm px-3 py-1 bg-slate-800 rounded-lg">Detener</button>
+      <button onclick="stopTimer()" class="text-slate-400 hover:text-white text-sm px-3 py-1.5 bg-slate-800 rounded-lg">Detener</button>
     </div>
     <div id="ejercicios-container" class="space-y-4"></div>
   </main>
 
-  <section id="tab-volumen" class="hidden space-y-6">
-    <div class="card p-6 rounded-2xl">
-      <h2 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
-        <i class="fa-solid fa-chart-simple text-blue-400"></i> Estado de Volumen Semanal (Series Efectivas)
-      </h2>
-      <p class="text-sm text-slate-400 mb-6">Basado en los marcos de Mike Israetel & Eric Helms: mantén tu volumen en la zona <strong>MAV</strong> para máxima hipertrofia sin fatiga residual.</p>
-      <div id="volumen-table-container" class="overflow-x-auto">
-        <table class="w-full text-left text-sm text-slate-300">
-          <thead class="text-xs uppercase bg-slate-900 text-slate-400">
-            <tr>
-              <th class="p-3">Grupo Muscular</th>
-              <th class="p-3">Series Registradas</th>
-              <th class="p-3">Mínimo (MEV)</th>
-              <th class="p-3">Óptimo (MAV)</th>
-              <th class="p-3">Límite (MRV)</th>
-              <th class="p-3">Estado</th>
-            </tr>
-          </thead>
-          <tbody id="volumen-body" class="divide-y divide-slate-800"></tbody>
-        </table>
+  <!-- TAB VOLUMEN -->
+  <section id="tab-volumen" class="hidden space-y-5">
+    <div class="card p-5 rounded-2xl">
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-chart-simple text-blue-400"></i> Volumen Semanal</h2>
+          <p class="text-xs text-slate-400 mt-1">MEV · MAV · MRV (Israetel & Helms)</p>
+        </div>
+        <button onclick="checkDeload()" class="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300"><i class="fa-solid fa-rotate"></i> Evaluar Deload</button>
       </div>
+      <div id="volumen-cards" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+    </div>
+    <div id="deload-suggestion" class="hidden card p-5 rounded-2xl border-amber-500/40 bg-amber-950/20">
+      <h3 class="font-bold text-amber-300 flex items-center gap-2"><i class="fa-solid fa-bed"></i> Sugerencia de Semana de Descarga</h3>
+      <p id="deload-text" class="text-sm text-slate-300 mt-2"></p>
+      <button onclick="aplicarDeload()" class="mt-3 accent-btn text-white text-sm font-bold py-2 px-4 rounded-xl">Aplicar Deload (reducir volumen 50%)</button>
     </div>
   </section>
 
-  <section id="tab-ejercicios" class="hidden space-y-6">
-    <div class="card p-6 rounded-2xl">
-      <h2 class="text-xl font-bold text-white mb-4">Ejercicios de Alto Ratio Estímulo-Fatiga (SFR)</h2>
-      <div id="catalogo-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+  <!-- TAB PROGRESO -->
+  <section id="tab-progreso" class="hidden space-y-5">
+    <div class="card p-5 rounded-2xl">
+      <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-line text-emerald-400"></i> Progreso de Cargas & 1RM Estimado</h2>
+      <div class="mb-4">
+        <label class="text-xs text-slate-400 block mb-1">Ejercicio</label>
+        <select id="select-ejercicio-chart" onchange="renderChart()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm"></select>
+      </div>
+      <div class="relative h-64 md:h-80">
+        <canvas id="progressChart"></canvas>
+      </div>
+      <div id="oneRM-display" class="mt-4 grid grid-cols-2 gap-3"></div>
     </div>
   </section>
 
-  <section id="tab-custom" class="hidden space-y-6">
-    <div class="card p-6 rounded-2xl">
-      <h2 class="text-xl font-bold text-white mb-4">Añadir Nuevo Ejercicio Personalizado</h2>
+  <!-- TAB HISTORIAL -->
+  <section id="tab-historial" class="hidden space-y-5">
+    <div class="card p-5 rounded-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-blue-400"></i> Historial de Series</h2>
+        <div class="flex gap-2">
+          <button onclick="exportLogs('csv')" class="text-xs px-3 py-1.5 bg-emerald-900/50 hover:bg-emerald-800 text-emerald-300 rounded-lg"><i class="fa-solid fa-file-csv"></i> CSV</button>
+          <button onclick="exportLogs('json')" class="text-xs px-3 py-1.5 bg-blue-900/50 hover:bg-blue-800 text-blue-300 rounded-lg"><i class="fa-solid fa-file-code"></i> JSON</button>
+          <button onclick="clearLogs()" class="text-xs px-3 py-1.5 bg-rose-900/50 hover:bg-rose-800 text-rose-300 rounded-lg"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
+      <div id="logs-container" class="space-y-2 max-h-96 overflow-y-auto"></div>
+    </div>
+  </section>
+
+  <!-- TAB CATÁLOGO -->
+  <section id="tab-ejercicios" class="hidden space-y-5">
+    <div class="card p-5 rounded-2xl">
+      <h2 class="text-lg font-bold text-white mb-4">Catálogo SFR (Estímulo-Fatiga)</h2>
+      <div id="catalogo-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+    </div>
+  </section>
+
+  <!-- TAB CUSTOM -->
+  <section id="tab-custom" class="hidden space-y-5">
+    <div class="card p-5 rounded-2xl">
+      <h2 class="text-lg font-bold text-white mb-4">Crear Ejercicio Personalizado</h2>
       <form id="form-custom" onsubmit="guardarCustom(event)" class="space-y-4">
         <div>
-          <label class="block text-sm text-slate-300 mb-1">Nombre del Ejercicio:</label>
+          <label class="block text-sm text-slate-300 mb-1">Nombre</label>
           <input type="text" id="cust-nombre" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white">
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm text-slate-300 mb-1">Grupo Muscular Principal:</label>
+            <label class="block text-sm text-slate-300 mb-1">Grupo Principal</label>
             <select id="cust-grupo" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white">
-              <option value="Pectoral">Pectoral</option>
-              <option value="Dorsal">Dorsal</option>
-              <option value="Espalda Alta">Espalda Alta</option>
-              <option value="Cuádriceps">Cuádriceps</option>
-              <option value="Isquiotibiales">Isquiotibiales</option>
-              <option value="Glúteos">Glúteos</option>
-              <option value="Deltoides Lateral">Deltoides Lateral</option>
-              <option value="Deltoides Posterior">Deltoides Posterior</option>
-              <option value="Bíceps">Bíceps</option>
-              <option value="Tríceps">Tríceps</option>
+              <option>Pectoral</option><option>Dorsal</option><option>Espalda Alta</option>
+              <option>Cuádriceps</option><option>Isquiotibiales</option><option>Glúteos</option>
+              <option>Deltoides Lateral</option><option>Deltoides Posterior</option>
+              <option>Bíceps</option><option>Tríceps</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm text-slate-300 mb-1">Equipamiento:</label>
+            <label class="block text-sm text-slate-300 mb-1">Equipamiento</label>
             <select id="cust-equip" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white">
-              <option value="Polea">Polea</option>
-              <option value="Máquina">Máquina</option>
-              <option value="Mancuerna">Mancuerna</option>
-              <option value="Barra">Barra</option>
-              <option value="Peso Corporal">Peso Corporal</option>
+              <option>Polea</option><option>Máquina</option><option>Mancuerna</option><option>Barra</option><option>Peso Corporal</option>
             </select>
           </div>
         </div>
         <div>
-          <label class="block text-sm text-slate-300 mb-1">Posición de Máxima Tensión:</label>
+          <label class="block text-sm text-slate-300 mb-1">Perfil de Resistencia</label>
           <select id="cust-perfil" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white">
-            <option value="Estiramiento">Estiramiento (Stretch-focused)</option>
+            <option value="Estiramiento">Estiramiento (Stretch-mediated)</option>
             <option value="Rango Medio">Rango Medio</option>
             <option value="Contracción">Contracción (Shortened)</option>
           </select>
@@ -146,63 +184,70 @@
     </div>
   </section>
 
+  <div id="toast" class="hidden toast"></div>
+
   <script>
-    // Datos embebidos desde Google Sheets (AppHipertrofia_Database)
     const INITIAL_DATA = {
       config: [
-        {Parámetro: "Estado_Entrenamiento", Valor: "Sedentario / Reinicio", Descripción: "Fase de acondicionamiento de 4 semanas", Rango_Científico: "Ramp-Up"},
-        {Parámetro: "Split_Actual", Valor: "Full Body (3 días)", Descripción: "Frecuencia 3x con bajo volumen por sesión", Rango_Científico: "3 a 4 días/sem"},
-        {Parámetro: "Racha_Consistencia_Dias", Valor: "0", Descripción: "Días consecutivos cumpliendo objetivos", Rango_Científico: "Módulo de Hábitos"},
-        {Parámetro: "Racha_Record_Dias", Valor: "0", Descripción: "Máximo récord de consistencia", Rango_Científico: "Refuerzo positivo"},
-        {Parámetro: "Ingesta_Proteica_Objetivo", Valor: "1.8 g/kg/día", Descripción: "Rango óptimo para atletas naturales", Rango_Científico: "1.6 a 2.2 g/kg"},
-        {Parámetro: "Creatina_Monohidrato", Valor: "5.0 g/día", Descripción: "Dosis diaria constante sin carga", Rango_Científico: "3 a 5 g/día"},
-        {Parámetro: "Pasos_Diarios_NEAT", Valor: "8000 pasos", Descripción: "Gasto sin interferencia con hipertrofia", Rango_Científico: "8000 a 10000 pasos"}
+        {Parámetro:"Estado_Entrenamiento",Valor:"Sedentario / Reinicio"},
+        {Parámetro:"Split_Actual",Valor:"Full Body (3 días)"},
+        {Parámetro:"Racha_Consistencia_Dias",Valor:"0"},
+        {Parámetro:"Racha_Record_Dias",Valor:"0"},
+        {Parámetro:"Semanas_MAV_Continuas",Valor:"0"},
+        {Parámetro:"Ingesta_Proteica_Objetivo",Valor:"1.8 g/kg/día"},
+        {Parámetro:"Creatina_Monohidrato",Valor:"5.0 g/día"},
+        {Parámetro:"Pasos_Diarios_NEAT",Valor:"8000 pasos"}
       ],
       ejercicios: [
-        {ID_Ejercicio: "EJ-001", Nombre_Ejercicio: "Press Inclinado en Multipower / Mancuernas", Grupo_Principal: "Pectoral", Grupo_Secundario: "Tríceps, Deltoides Ant", Equipamiento: "Máquina/Mancuerna", Perfil_Resistencia: "Estiramiento", SFR_Tier: "Tier S", Descanso_Base_Seg: "150", Es_Custom: "No"},
-        {ID_Ejercicio: "EJ-002", Nombre_Ejercicio: "Cruces en Polea a la Altura del Pecho", Grupo_Principal: "Pectoral", Grupo_Secundario: "Deltoides Ant", Equipamiento: "Polea", Perfil_Resistencia: "Estiramiento", SFR_Tier: "Tier S", Descanso_Base_Seg: "120", Es_Custom: "No"},
-        {ID_Ejercicio: "EJ-003", Nombre_Ejercicio: "Jalón al Pecho Agarre Neutro", Grupo_Principal: "Dorsal", Grupo_Secundario: "Bíceps, Braquial", Equipamiento: "Polea", Perfil_Resistencia: "Estiramiento", SFR_Tier: "Tier S", Descanso_Base_Seg: "150", Es_Custom: "No"},
-        {ID_Ejercicio: "EJ-004", Nombre_Ejercicio: "Remo con Apoyo en el Pecho", Grupo_Principal: "Espalda Alta", Grupo_Secundario: "Trapecio, Deltoides Post, Bíceps", Equipamiento: "Máquina", Perfil_Resistencia: "Rango Medio", SFR_Tier: "Tier S", Descanso_Base_Seg: "150", Es_Custom: "No"},
-        {ID_Ejercicio: "EJ-005", Nombre_Ejercicio: "Sentadilla Hack / Prensa a 45°", Grupo_Principal: "Cuádriceps", Grupo_Secundario: "Glúteos", Equipamiento: "Máquina", Perfil_Resistencia: "Estiramiento", SFR_Tier: "Tier S", Descanso_Base_Seg: "180", Es_Custom: "No"},
-        {ID_Ejercicio: "EJ-006", Nombre_Ejercicio: "Extensión de Cuádriceps en Sillón", Grupo_Principal: "Cuádriceps", Grupo_Secundario: "Recto Femoral", Equipamiento: "Máquina", Perfil_Resistencia: "Contracción", SFR_Tier: "Tier S", Descanso_Base_Seg: "120", Es_Custom: "No"},
-        {ID_Ejercicio: "EJ-007", Nombre_Ejercicio: "Curl Femoral Sentado", Grupo_Principal: "Isquiotibiales", Grupo_Secundario: "Ninguno", Equipamiento: "Máquina", Perfil_Resistencia: "Estiramiento", SFR_Tier: "Tier S", Descanso_Base_Seg: "120", Es_Custom: "No"},
-        {ID_Ejercicio: "EJ-008", Nombre_Ejercicio: "Peso Muerto Rumano con Mancuernas (RDL)", Grupo_Principal: "Isquiotibiales", Grupo_Secundario: "Glúteos, Erectores", Equipamiento: "Mancuerna/Barra", Perfil_Resistencia: "Estiramiento", SFR_Tier: "Tier A", Descanso_Base_Seg: "180", Es_Custom: "No"},
-        {ID_Ejercicio: "EJ-009", Nombre_Ejercicio: "Elevaciones Laterales en Polea a Cadera", Grupo_Principal: "Deltoides Lateral", Grupo_Secundario: "Ninguno", Equipamiento: "Polea", Perfil_Resistencia: "Estiramiento", SFR_Tier: "Tier S", Descanso_Base_Seg: "90", Es_Custom: "No"},
-        {ID_Ejercicio: "EJ-010", Nombre_Ejercicio: "Face Pulls en Polea Alta", Grupo_Principal: "Deltoides Posterior", Grupo_Secundario: "Rotadores Externos, Trapecio", Equipamiento: "Polea", Perfil_Resistencia: "Contracción", SFR_Tier: "Tier S", Descanso_Base_Seg: "90", Es_Custom: "No"},
-        {ID_Ejercicio: "EJ-011", Nombre_Ejercicio: "Curl de Bíceps en Banco Inclinado", Grupo_Principal: "Bíceps", Grupo_Secundario: "Braquiorradial", Equipamiento: "Mancuerna", Perfil_Resistencia: "Estiramiento", SFR_Tier: "Tier S", Descanso_Base_Seg: "90", Es_Custom: "No"},
-        {ID_Ejercicio: "EJ-012", Nombre_Ejercicio: "Extensiones Katana tras nuca en Polea", Grupo_Principal: "Tríceps", Grupo_Secundario: "Cabeza Larga Tríceps", Equipamiento: "Polea", Perfil_Resistencia: "Estiramiento", SFR_Tier: "Tier S", Descanso_Base_Seg: "90", Es_Custom: "No"}
+        {ID_Ejercicio:"EJ-001",Nombre_Ejercicio:"Press Inclinado en Multipower / Mancuernas",Grupo_Principal:"Pectoral",Grupo_Secundario:"Tríceps, Deltoides Ant",Equipamiento:"Máquina/Mancuerna",Perfil_Resistencia:"Estiramiento",SFR_Tier:"Tier S",Descanso_Base_Seg:"150",Es_Custom:"No"},
+        {ID_Ejercicio:"EJ-002",Nombre_Ejercicio:"Cruces en Polea a la Altura del Pecho",Grupo_Principal:"Pectoral",Grupo_Secundario:"Deltoides Ant",Equipamiento:"Polea",Perfil_Resistencia:"Estiramiento",SFR_Tier:"Tier S",Descanso_Base_Seg:"120",Es_Custom:"No"},
+        {ID_Ejercicio:"EJ-003",Nombre_Ejercicio:"Jalón al Pecho Agarre Neutro",Grupo_Principal:"Dorsal",Grupo_Secundario:"Bíceps, Braquial",Equipamiento:"Polea",Perfil_Resistencia:"Estiramiento",SFR_Tier:"Tier S",Descanso_Base_Seg:"150",Es_Custom:"No"},
+        {ID_Ejercicio:"EJ-004",Nombre_Ejercicio:"Remo con Apoyo en el Pecho",Grupo_Principal:"Espalda Alta",Grupo_Secundario:"Trapecio, Deltoides Post, Bíceps",Equipamiento:"Máquina",Perfil_Resistencia:"Rango Medio",SFR_Tier:"Tier S",Descanso_Base_Seg:"150",Es_Custom:"No"},
+        {ID_Ejercicio:"EJ-005",Nombre_Ejercicio:"Sentadilla Hack / Prensa a 45°",Grupo_Principal:"Cuádriceps",Grupo_Secundario:"Glúteos",Equipamiento:"Máquina",Perfil_Resistencia:"Estiramiento",SFR_Tier:"Tier S",Descanso_Base_Seg:"180",Es_Custom:"No"},
+        {ID_Ejercicio:"EJ-006",Nombre_Ejercicio:"Extensión de Cuádriceps en Sillón",Grupo_Principal:"Cuádriceps",Grupo_Secundario:"Recto Femoral",Equipamiento:"Máquina",Perfil_Resistencia:"Contracción",SFR_Tier:"Tier S",Descanso_Base_Seg:"120",Es_Custom:"No"},
+        {ID_Ejercicio:"EJ-007",Nombre_Ejercicio:"Curl Femoral Sentado",Grupo_Principal:"Isquiotibiales",Grupo_Secundario:"Ninguno",Equipamiento:"Máquina",Perfil_Resistencia:"Estiramiento",SFR_Tier:"Tier S",Descanso_Base_Seg:"120",Es_Custom:"No"},
+        {ID_Ejercicio:"EJ-008",Nombre_Ejercicio:"Peso Muerto Rumano con Mancuernas (RDL)",Grupo_Principal:"Isquiotibiales",Grupo_Secundario:"Glúteos, Erectores",Equipamiento:"Mancuerna/Barra",Perfil_Resistencia:"Estiramiento",SFR_Tier:"Tier A",Descanso_Base_Seg:"180",Es_Custom:"No"},
+        {ID_Ejercicio:"EJ-009",Nombre_Ejercicio:"Elevaciones Laterales en Polea a Cadera",Grupo_Principal:"Deltoides Lateral",Grupo_Secundario:"Ninguno",Equipamiento:"Polea",Perfil_Resistencia:"Estiramiento",SFR_Tier:"Tier S",Descanso_Base_Seg:"90",Es_Custom:"No"},
+        {ID_Ejercicio:"EJ-010",Nombre_Ejercicio:"Face Pulls en Polea Alta",Grupo_Principal:"Deltoides Posterior",Grupo_Secundario:"Rotadores Externos, Trapecio",Equipamiento:"Polea",Perfil_Resistencia:"Contracción",SFR_Tier:"Tier S",Descanso_Base_Seg:"90",Es_Custom:"No"},
+        {ID_Ejercicio:"EJ-011",Nombre_Ejercicio:"Curl de Bíceps en Banco Inclinado",Grupo_Principal:"Bíceps",Grupo_Secundario:"Braquiorradial",Equipamiento:"Mancuerna",Perfil_Resistencia:"Estiramiento",SFR_Tier:"Tier S",Descanso_Base_Seg:"90",Es_Custom:"No"},
+        {ID_Ejercicio:"EJ-012",Nombre_Ejercicio:"Extensiones Katana tras nuca en Polea",Grupo_Principal:"Tríceps",Grupo_Secundario:"Cabeza Larga Tríceps",Equipamiento:"Polea",Perfil_Resistencia:"Estiramiento",SFR_Tier:"Tier S",Descanso_Base_Seg:"90",Es_Custom:"No"}
       ],
       rutinas: [
-        {Rutina_ID: "FB-01", Nombre_Rutina: "Full Body A", Dia: "Día 1 (Lunes)", Orden: "1", ID_Ejercicio: "EJ-005", Nombre_Ejercicio: "Sentadilla Hack / Prensa a 45°", Series_Objetivo: "3", Rango_Reps: "8-12", RIR_Objetivo: "2-3", Descanso_Seg: "180"},
-        {Rutina_ID: "FB-01", Nombre_Rutina: "Full Body A", Dia: "Día 1 (Lunes)", Orden: "2", ID_Ejercicio: "EJ-001", Nombre_Ejercicio: "Press Inclinado en Multipower / Mancuernas", Series_Objetivo: "3", Rango_Reps: "8-12", RIR_Objetivo: "2-3", Descanso_Seg: "150"},
-        {Rutina_ID: "FB-01", Nombre_Rutina: "Full Body A", Dia: "Día 1 (Lunes)", Orden: "3", ID_Ejercicio: "EJ-003", Nombre_Ejercicio: "Jalón al Pecho Agarre Neutro", Series_Objetivo: "3", Rango_Reps: "8-12", RIR_Objetivo: "2-3", Descanso_Seg: "150"},
-        {Rutina_ID: "FB-01", Nombre_Rutina: "Full Body A", Dia: "Día 1 (Lunes)", Orden: "4", ID_Ejercicio: "EJ-007", Nombre_Ejercicio: "Curl Femoral Sentado", Series_Objetivo: "3", Rango_Reps: "10-15", RIR_Objetivo: "2", Descanso_Seg: "120"},
-        {Rutina_ID: "FB-01", Nombre_Rutina: "Full Body A", Dia: "Día 1 (Lunes)", Orden: "5", ID_Ejercicio: "EJ-009", Nombre_Ejercicio: "Elevaciones Laterales en Polea a Cadera", Series_Objetivo: "3", Rango_Reps: "12-15", RIR_Objetivo: "1-2", Descanso_Seg: "90"},
-        {Rutina_ID: "FB-01", Nombre_Rutina: "Full Body A", Dia: "Día 1 (Lunes)", Orden: "6", ID_Ejercicio: "EJ-012", Nombre_Ejercicio: "Extensiones Katana tras nuca en Polea", Series_Objetivo: "2", Rango_Reps: "10-15", RIR_Objetivo: "1-2", Descanso_Seg: "90"},
-        {Rutina_ID: "FB-02", Nombre_Rutina: "Full Body B", Dia: "Día 2 (Miércoles)", Orden: "1", ID_Ejercicio: "EJ-008", Nombre_Ejercicio: "Peso Muerto Rumano con Mancuernas (RDL)", Series_Objetivo: "3", Rango_Reps: "8-10", RIR_Objetivo: "2-3", Descanso_Seg: "180"},
-        {Rutina_ID: "FB-02", Nombre_Rutina: "Full Body B", Dia: "Día 2 (Miércoles)", Orden: "2", ID_Ejercicio: "EJ-004", Nombre_Ejercicio: "Remo con Apoyo en el Pecho", Series_Objetivo: "3", Rango_Reps: "8-12", RIR_Objetivo: "2-3", Descanso_Seg: "150"},
-        {Rutina_ID: "FB-02", Nombre_Rutina: "Full Body B", Dia: "Día 2 (Miércoles)", Orden: "3", ID_Ejercicio: "EJ-002", Nombre_Ejercicio: "Cruces en Polea a la Altura del Pecho", Series_Objetivo: "3", Rango_Reps: "10-15", RIR_Objetivo: "1-2", Descanso_Seg: "120"},
-        {Rutina_ID: "FB-02", Nombre_Rutina: "Full Body B", Dia: "Día 2 (Miércoles)", Orden: "4", ID_Ejercicio: "EJ-006", Nombre_Ejercicio: "Extensión de Cuádriceps en Sillón", Series_Objetivo: "3", Rango_Reps: "10-15", RIR_Objetivo: "1-2", Descanso_Seg: "120"},
-        {Rutina_ID: "FB-02", Nombre_Rutina: "Full Body B", Dia: "Día 2 (Miércoles)", Orden: "5", ID_Ejercicio: "EJ-010", Nombre_Ejercicio: "Face Pulls en Polea Alta", Series_Objetivo: "3", Rango_Reps: "12-15", RIR_Objetivo: "1-2", Descanso_Seg: "90"},
-        {Rutina_ID: "FB-02", Nombre_Rutina: "Full Body B", Dia: "Día 2 (Miércoles)", Orden: "6", ID_Ejercicio: "EJ-011", Nombre_Ejercicio: "Curl de Bíceps en Banco Inclinado", Series_Objetivo: "2", Rango_Reps: "10-15", RIR_Objetivo: "1-2", Descanso_Seg: "90"}
+        {Rutina_ID:"FB-01",Nombre_Rutina:"Full Body A",Dia:"Día 1",Orden:"1",ID_Ejercicio:"EJ-005",Nombre_Ejercicio:"Sentadilla Hack / Prensa a 45°",Series_Objetivo:"3",Rango_Reps:"8-12",RIR_Objetivo:"2-3",Descanso_Seg:"180"},
+        {Rutina_ID:"FB-01",Nombre_Rutina:"Full Body A",Dia:"Día 1",Orden:"2",ID_Ejercicio:"EJ-001",Nombre_Ejercicio:"Press Inclinado en Multipower / Mancuernas",Series_Objetivo:"3",Rango_Reps:"8-12",RIR_Objetivo:"2-3",Descanso_Seg:"150"},
+        {Rutina_ID:"FB-01",Nombre_Rutina:"Full Body A",Dia:"Día 1",Orden:"3",ID_Ejercicio:"EJ-003",Nombre_Ejercicio:"Jalón al Pecho Agarre Neutro",Series_Objetivo:"3",Rango_Reps:"8-12",RIR_Objetivo:"2-3",Descanso_Seg:"150"},
+        {Rutina_ID:"FB-01",Nombre_Rutina:"Full Body A",Dia:"Día 1",Orden:"4",ID_Ejercicio:"EJ-007",Nombre_Ejercicio:"Curl Femoral Sentado",Series_Objetivo:"3",Rango_Reps:"10-15",RIR_Objetivo:"2",Descanso_Seg:"120"},
+        {Rutina_ID:"FB-01",Nombre_Rutina:"Full Body A",Dia:"Día 1",Orden:"5",ID_Ejercicio:"EJ-009",Nombre_Ejercicio:"Elevaciones Laterales en Polea a Cadera",Series_Objetivo:"3",Rango_Reps:"12-15",RIR_Objetivo:"1-2",Descanso_Seg:"90"},
+        {Rutina_ID:"FB-01",Nombre_Rutina:"Full Body A",Dia:"Día 1",Orden:"6",ID_Ejercicio:"EJ-012",Nombre_Ejercicio:"Extensiones Katana tras nuca en Polea",Series_Objetivo:"2",Rango_Reps:"10-15",RIR_Objetivo:"1-2",Descanso_Seg:"90"},
+        {Rutina_ID:"FB-02",Nombre_Rutina:"Full Body B",Dia:"Día 2",Orden:"1",ID_Ejercicio:"EJ-008",Nombre_Ejercicio:"Peso Muerto Rumano con Mancuernas (RDL)",Series_Objetivo:"3",Rango_Reps:"8-10",RIR_Objetivo:"2-3",Descanso_Seg:"180"},
+        {Rutina_ID:"FB-02",Nombre_Rutina:"Full Body B",Dia:"Día 2",Orden:"2",ID_Ejercicio:"EJ-004",Nombre_Ejercicio:"Remo con Apoyo en el Pecho",Series_Objetivo:"3",Rango_Reps:"8-12",RIR_Objetivo:"2-3",Descanso_Seg:"150"},
+        {Rutina_ID:"FB-02",Nombre_Rutina:"Full Body B",Dia:"Día 2",Orden:"3",ID_Ejercicio:"EJ-002",Nombre_Ejercicio:"Cruces en Polea a la Altura del Pecho",Series_Objetivo:"3",Rango_Reps:"10-15",RIR_Objetivo:"1-2",Descanso_Seg:"120"},
+        {Rutina_ID:"FB-02",Nombre_Rutina:"Full Body B",Dia:"Día 2",Orden:"4",ID_Ejercicio:"EJ-006",Nombre_Ejercicio:"Extensión de Cuádriceps en Sillón",Series_Objetivo:"3",Rango_Reps:"10-15",RIR_Objetivo:"1-2",Descanso_Seg:"120"},
+        {Rutina_ID:"FB-02",Nombre_Rutina:"Full Body B",Dia:"Día 2",Orden:"5",ID_Ejercicio:"EJ-010",Nombre_Ejercicio:"Face Pulls en Polea Alta",Series_Objetivo:"3",Rango_Reps:"12-15",RIR_Objetivo:"1-2",Descanso_Seg:"90"},
+        {Rutina_ID:"FB-02",Nombre_Rutina:"Full Body B",Dia:"Día 2",Orden:"6",ID_Ejercicio:"EJ-011",Nombre_Ejercicio:"Curl de Bíceps en Banco Inclinado",Series_Objetivo:"2",Rango_Reps:"10-15",RIR_Objetivo:"1-2",Descanso_Seg:"90"}
       ],
       volumen: [
-        {Grupo_Muscular: "Pectoral", Series_Efectivas_Registradas: "0", MEV_Minimo_Semanal: "6", MAV_Optimo_Semanal: "12", MRV_Maximo_Semanal: "18", Estado_Adaptativo: "Bajo Estímulo"},
-        {Grupo_Muscular: "Dorsal / Espalda", Series_Efectivas_Registradas: "0", MEV_Minimo_Semanal: "6", MAV_Optimo_Semanal: "14", MRV_Maximo_Semanal: "20", Estado_Adaptativo: "Bajo Estímulo"},
-        {Grupo_Muscular: "Cuádriceps", Series_Efectivas_Registradas: "0", MEV_Minimo_Semanal: "6", MAV_Optimo_Semanal: "12", MRV_Maximo_Semanal: "18", Estado_Adaptativo: "Bajo Estímulo"},
-        {Grupo_Muscular: "Isquiotibiales", Series_Efectivas_Registradas: "0", MEV_Minimo_Semanal: "6", MAV_Optimo_Semanal: "10", MRV_Maximo_Semanal: "16", Estado_Adaptativo: "Bajo Estímulo"},
-        {Grupo_Muscular: "Deltoides Lateral/Post", Series_Efectivas_Registradas: "0", MEV_Minimo_Semanal: "6", MAV_Optimo_Semanal: "14", MRV_Maximo_Semanal: "22", Estado_Adaptativo: "Bajo Estímulo"},
-        {Grupo_Muscular: "Bíceps / Tríceps", Series_Efectivas_Registradas: "0", MEV_Minimo_Semanal: "4", MAV_Optimo_Semanal: "10", MRV_Maximo_Semanal: "16", Estado_Adaptativo: "Bajo Estímulo"}
+        {Grupo_Muscular:"Pectoral",Series_Efectivas_Registradas:"0",MEV_Minimo_Semanal:"6",MAV_Optimo_Semanal:"12",MRV_Maximo_Semanal:"18",Estado_Adaptativo:"Bajo Estímulo"},
+        {Grupo_Muscular:"Dorsal / Espalda",Series_Efectivas_Registradas:"0",MEV_Minimo_Semanal:"6",MAV_Optimo_Semanal:"14",MRV_Maximo_Semanal:"20",Estado_Adaptativo:"Bajo Estímulo"},
+        {Grupo_Muscular:"Cuádriceps",Series_Efectivas_Registradas:"0",MEV_Minimo_Semanal:"6",MAV_Optimo_Semanal:"12",MRV_Maximo_Semanal:"18",Estado_Adaptativo:"Bajo Estímulo"},
+        {Grupo_Muscular:"Isquiotibiales",Series_Efectivas_Registradas:"0",MEV_Minimo_Semanal:"6",MAV_Optimo_Semanal:"10",MRV_Maximo_Semanal:"16",Estado_Adaptativo:"Bajo Estímulo"},
+        {Grupo_Muscular:"Deltoides Lateral/Post",Series_Efectivas_Registradas:"0",MEV_Minimo_Semanal:"6",MAV_Optimo_Semanal:"14",MRV_Maximo_Semanal:"22",Estado_Adaptativo:"Bajo Estímulo"},
+        {Grupo_Muscular:"Bíceps / Tríceps",Series_Efectivas_Registradas:"0",MEV_Minimo_Semanal:"4",MAV_Optimo_Semanal:"10",MRV_Maximo_Semanal:"16",Estado_Adaptativo:"Bajo Estímulo"}
       ]
     };
 
     let appData = null;
     let timerInterval = null;
+    let progressChart = null;
 
     function loadData() {
-      const saved = localStorage.getItem('appHipertrofiaData');
+      const saved = localStorage.getItem('appHipertrofiaData_v2');
       if (saved) {
         appData = JSON.parse(saved);
+        // Migración simple
+        if (!appData.config.find(c => c.Parámetro === 'Semanas_MAV_Continuas')) {
+          appData.config.push({Parámetro:'Semanas_MAV_Continuas', Valor:'0'});
+        }
       } else {
         appData = JSON.parse(JSON.stringify(INITIAL_DATA));
         appData.logs = [];
@@ -212,12 +257,28 @@
     }
 
     function saveData() {
-      localStorage.setItem('appHipertrofiaData', JSON.stringify(appData));
+      localStorage.setItem('appHipertrofiaData_v2', JSON.stringify(appData));
+    }
+
+    function showToast(msg, type='success') {
+      const t = document.getElementById('toast');
+      t.className = 'toast ' + (type==='success' ? 'bg-emerald-600 text-white' : type==='warn' ? 'bg-amber-600 text-white' : 'bg-rose-600 text-white');
+      t.innerText = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2800);
+    }
+
+    // Epley formula
+    function calc1RM(weight, reps) {
+      if (reps <= 0 || weight <= 0) return 0;
+      if (reps === 1) return weight;
+      return Math.round(weight * (1 + reps / 30) * 10) / 10;
     }
 
     window.onload = function() {
       loadData();
       onDataLoaded(appData);
+      checkDeload(true);
     };
 
     function onDataLoaded(data) {
@@ -226,54 +287,83 @@
       document.getElementById('racha-val').innerText = (rachaObj ? rachaObj.Valor : '0') + ' Días';
 
       const rutinasSet = [...new Set(data.rutinas.map(r => r.Nombre_Rutina))];
-      const select = document.getElementById('select-rutina');
-      select.innerHTML = rutinasSet.map(r => `<option value="${r}">${r}</option>`).join('');
+      document.getElementById('select-rutina').innerHTML = rutinasSet.map(r => `<option value="${r}">${r}</option>`).join('');
+      
+      // Chart select
+      const uniqueEj = [...new Set(data.logs?.map(l => l.Nombre_Ejercicio) || [])];
+      const allEj = data.ejercicios.map(e => e.Nombre_Ejercicio);
+      const opts = [...new Set([...uniqueEj, ...allEj])];
+      document.getElementById('select-ejercicio-chart').innerHTML = opts.map(e => `<option value="${e}">${e}</option>`).join('') || '<option>Sin datos aún</option>';
+
       renderRutina();
-      renderVolumenTable();
+      renderVolumenCards();
       renderCatalogo();
+      renderLogs();
+      renderChart();
     }
 
     function renderRutina() {
       const selected = document.getElementById('select-rutina').value;
-      const ejercicios = appData.rutinas.filter(r => r.Nombre_Rutina === selected).sort((a, b) => parseInt(a.Orden) - parseInt(b.Orden));
+      const ejercicios = appData.rutinas.filter(r => r.Nombre_Rutina === selected).sort((a,b) => parseInt(a.Orden)-parseInt(b.Orden));
       const container = document.getElementById('ejercicios-container');
 
-      container.innerHTML = ejercicios.map((ej, i) => `
-        <div class="card p-5 rounded-2xl space-y-4">
-          <div class="flex justify-between items-start">
+      container.innerHTML = ejercicios.map((ej, i) => {
+        // Última carga conocida
+        const lastLog = (appData.logs || []).filter(l => l.ID_Ejercicio === ej.ID_Ejercicio).slice(-1)[0];
+        const lastWeight = lastLog ? lastLog.Carga_Kg : 60;
+        const lastReps = lastLog ? lastLog.Reps_Realizadas : 10;
+        return `
+        <div class="card p-4 md:p-5 rounded-2xl space-y-3">
+          <div class="flex justify-between items-start gap-2">
             <div>
-              <span class="text-xs font-bold px-2.5 py-1 bg-blue-900/60 text-blue-300 rounded-lg">Paso ${ej.Orden}</span>
-              <h3 class="text-lg font-bold text-white mt-1">${ej.Nombre_Ejercicio}</h3>
-              <p class="text-xs text-slate-400">Meta: ${ej.Series_Objetivo} series × ${ej.Rango_Reps} reps | RIR obj: ${ej.RIR_Objetivo}</p>
+              <span class="text-[10px] font-bold px-2 py-0.5 bg-blue-900/60 text-blue-300 rounded-md">Paso ${ej.Orden}</span>
+              <h3 class="text-base md:text-lg font-bold text-white mt-1">${ej.Nombre_Ejercicio}</h3>
+              <p class="text-xs text-slate-400">${ej.Series_Objetivo} × ${ej.Rango_Reps} · RIR ${ej.RIR_Objetivo}</p>
             </div>
-            <span class="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-full"><i class="fa-solid fa-clock"></i> ${ej.Descanso_Seg}s descanso</span>
+            <span class="text-[10px] text-slate-400 bg-slate-800 px-2 py-1 rounded-full shrink-0"><i class="fa-solid fa-clock"></i> ${ej.Descanso_Seg}s</span>
           </div>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
             <div>
-              <label class="text-xs text-slate-400 block mb-1">Carga (Kg)</label>
-              <input type="number" id="peso-${i}" value="60" step="2.5" class="w-full bg-slate-800 text-white rounded-lg p-2 font-bold text-center border border-slate-700">
+              <label class="text-[10px] text-slate-400 block mb-1">Carga (Kg)</label>
+              <input type="number" id="peso-${i}" value="${lastWeight}" step="2.5" class="w-full bg-slate-800 text-white rounded-lg p-2 font-bold text-center border border-slate-700 text-sm">
             </div>
             <div>
-              <label class="text-xs text-slate-400 block mb-1">Reps Logradas</label>
-              <input type="number" id="reps-${i}" value="10" class="w-full bg-slate-800 text-white rounded-lg p-2 font-bold text-center border border-slate-700">
+              <label class="text-[10px] text-slate-400 block mb-1">Reps</label>
+              <input type="number" id="reps-${i}" value="${lastReps}" class="w-full bg-slate-800 text-white rounded-lg p-2 font-bold text-center border border-slate-700 text-sm">
             </div>
             <div>
-              <label class="text-xs text-slate-400 block mb-1">RIR (En Reserva)</label>
-              <select id="rir-${i}" class="w-full bg-slate-800 text-white rounded-lg p-2 font-bold text-center border border-slate-700">
-                <option value="0">0 (Fallo absoluto)</option>
-                <option value="1">1 (1 rep en tanque)</option>
-                <option value="2" selected>2 (2 reps en tanque)</option>
-                <option value="3">3 (3 reps en tanque)</option>
+              <label class="text-[10px] text-slate-400 block mb-1">RIR</label>
+              <select id="rir-${i}" class="w-full bg-slate-800 text-white rounded-lg p-2 font-bold text-center border border-slate-700 text-sm">
+                <option value="0">0</option><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option>
               </select>
             </div>
             <div class="flex items-end">
-              <button onclick="guardarSerie(${i}, '${ej.Rutina_ID}', '${ej.ID_Ejercicio}', '${ej.Nombre_Ejercicio}', '${ej.Rango_Reps}', ${ej.Descanso_Seg})" class="accent-btn text-white font-bold py-2 px-4 rounded-lg w-full text-sm">
+              <div class="w-full text-center">
+                <div class="text-[10px] text-slate-400">1RM est.</div>
+                <div id="orm-${i}" class="text-sm font-bold text-emerald-400">—</div>
+              </div>
+            </div>
+            <div class="flex items-end col-span-2 md:col-span-1">
+              <button onclick="guardarSerie(${i}, '${ej.Rutina_ID}', '${ej.ID_Ejercicio}', '${ej.Nombre_Ejercicio.replace(/'/g,"\\'")}', '${ej.Rango_Reps}', ${ej.Descanso_Seg})" class="accent-btn text-white font-bold py-2 px-3 rounded-lg w-full text-xs md:text-sm">
                 <i class="fa-solid fa-check"></i> Registrar
               </button>
             </div>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
+
+      // Live 1RM update
+      ejercicios.forEach((_, i) => {
+        const updateORM = () => {
+          const w = parseFloat(document.getElementById(`peso-${i}`)?.value) || 0;
+          const r = parseInt(document.getElementById(`reps-${i}`)?.value) || 0;
+          const el = document.getElementById(`orm-${i}`);
+          if (el) el.innerText = calc1RM(w, r) + ' kg';
+        };
+        document.getElementById(`peso-${i}`)?.addEventListener('input', updateORM);
+        document.getElementById(`reps-${i}`)?.addEventListener('input', updateORM);
+        updateORM();
+      });
     }
 
     function guardarSerie(idx, rutinaId, ejercicioId, nombre, rangoReps, descansoBase) {
@@ -288,59 +378,50 @@
 
       const esEfectiva = (rir <= 3) ? 'Sí' : 'No';
       let dobleProgresionTrigger = 'Mantener';
-      if (reps >= targetMax && rir <= 2) {
-        dobleProgresionTrigger = 'Subir Carga (+2.5kg)';
-      }
+      if (reps >= targetMax && rir <= 2) dobleProgresionTrigger = 'Subir Carga (+2.5kg)';
 
-      const logId = 'LOG-' + new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
-      const fecha = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+      const oneRM = calc1RM(peso, reps);
+      const logId = 'LOG-' + Date.now();
+      const fecha = new Date().toLocaleString('es-AR', {timeZone:'America/Argentina/Buenos_Aires'});
 
       if (!appData.logs) appData.logs = [];
       appData.logs.push({
-        Log_ID: logId,
-        Fecha: fecha,
-        Rutina_ID: rutinaId,
-        ID_Ejercicio: ejercicioId,
-        Nombre_Ejercicio: nombre,
-        Serie_Num: 1,
-        Carga_Kg: peso,
-        Reps_Realizadas: reps,
-        RIR_Reportado: rir,
-        Descanso_Cronometrado_Seg: descansoFinal,
-        Serie_Efectiva: esEfectiva,
-        Doble_Progresion_Trigger: dobleProgresionTrigger,
-        Notas: ''
+        Log_ID: logId, Fecha: fecha, Rutina_ID: rutinaId, ID_Ejercicio: ejercicioId,
+        Nombre_Ejercicio: nombre, Serie_Num: 1, Carga_Kg: peso, Reps_Realizadas: reps,
+        RIR_Reportado: rir, Descanso_Cronometrado_Seg: descansoFinal,
+        Serie_Efectiva: esEfectiva, Doble_Progresion_Trigger: dobleProgresionTrigger,
+        OneRM_Estimado: oneRM, Notas: ''
       });
 
-      // Actualizar racha
       const rachaObj = appData.config.find(c => c.Parámetro === 'Racha_Consistencia_Dias');
       if (rachaObj) {
         rachaObj.Valor = String(parseInt(rachaObj.Valor || 0) + 1);
         document.getElementById('racha-val').innerText = rachaObj.Valor + ' Días';
       }
 
-      // Actualizar volumen simple (ejemplo básico)
       updateVolumen(ejercicioId, esEfectiva === 'Sí');
-
       saveData();
+      renderLogs();
+      // refresh chart options
+      const uniqueEj = [...new Set(appData.logs.map(l => l.Nombre_Ejercicio))];
+      document.getElementById('select-ejercicio-chart').innerHTML = uniqueEj.map(e => `<option value="${e}">${e}</option>`).join('');
 
       if (reps >= targetMax && rir <= 2) {
-        alert(`🚀 ¡EXCELENTE! Alcanzaste ${targetMax} reps con RIR ${rir}. El modelo de Doble Progresión sugiere subir a ${peso + 2.5} Kg en tu próxima sesión.`);
+        showToast(`🚀 ¡Doble Progresión! Sube a ${peso + 2.5} kg la próxima`, 'success');
       } else {
-        alert('✅ Serie guardada localmente (localStorage).');
+        showToast('✅ Serie registrada · 1RM ≈ ' + oneRM + ' kg');
       }
+      checkDeload(true);
     }
 
     function updateVolumen(ejercicioId, isEffective) {
       if (!isEffective) return;
       const ej = appData.ejercicios.find(e => e.ID_Ejercicio === ejercicioId);
       if (!ej) return;
-      const grupo = ej.Grupo_Principal;
-      // Mapeo simple
-      let key = grupo;
-      if (grupo === 'Dorsal' || grupo === 'Espalda Alta') key = 'Dorsal / Espalda';
-      if (grupo.includes('Deltoides')) key = 'Deltoides Lateral/Post';
-      if (grupo === 'Bíceps' || grupo === 'Tríceps') key = 'Bíceps / Tríceps';
+      let key = ej.Grupo_Principal;
+      if (key === 'Dorsal' || key === 'Espalda Alta') key = 'Dorsal / Espalda';
+      if (key.includes('Deltoides')) key = 'Deltoides Lateral/Post';
+      if (key === 'Bíceps' || key === 'Tríceps') key = 'Bíceps / Tríceps';
 
       const vol = appData.volumen.find(v => v.Grupo_Muscular.includes(key.split(' ')[0]) || v.Grupo_Muscular === key);
       if (vol) {
@@ -352,7 +433,77 @@
         else if (series <= mav) vol.Estado_Adaptativo = 'Zona Óptima (MAV)';
         else vol.Estado_Adaptativo = 'Riesgo Fatiga (MRV)';
       }
-      renderVolumenTable();
+      renderVolumenCards();
+    }
+
+    function renderVolumenCards() {
+      const container = document.getElementById('volumen-cards');
+      container.innerHTML = appData.volumen.map(v => {
+        const series = parseInt(v.Series_Efectivas_Registradas) || 0;
+        const mev = parseInt(v.MEV_Minimo_Semanal);
+        const mav = parseInt(v.MAV_Optimo_Semanal);
+        const mrv = parseInt(v.MRV_Maximo_Semanal);
+        const pct = Math.min(100, Math.round((series / mrv) * 100));
+        let color = 'bg-blue-500';
+        if (v.Estado_Adaptativo.includes('Óptima')) color = 'bg-emerald-500';
+        if (v.Estado_Adaptativo.includes('Riesgo')) color = 'bg-rose-500';
+        if (v.Estado_Adaptativo.includes('Bajo')) color = 'bg-slate-500';
+        return `
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+          <div class="flex justify-between items-center mb-2">
+            <span class="font-semibold text-white text-sm">${v.Grupo_Muscular}</span>
+            <span class="text-xs px-2 py-0.5 rounded-full ${v.Estado_Adaptativo.includes('Óptima') ? 'bg-emerald-950 text-emerald-300' : v.Estado_Adaptativo.includes('Riesgo') ? 'bg-rose-950 text-rose-300' : 'bg-slate-800 text-slate-300'}">${v.Estado_Adaptativo}</span>
+          </div>
+          <div class="text-2xl font-black text-blue-400 mb-1">${series} <span class="text-sm font-normal text-slate-500">series</span></div>
+          <div class="progress-bar mb-2"><div class="progress-fill ${color}" style="width:${pct}%"></div></div>
+          <div class="flex justify-between text-[10px] text-slate-500">
+            <span>MEV ${mev}</span><span class="text-emerald-400">MAV ${mav}</span><span class="text-rose-400">MRV ${mrv}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function checkDeload(silent=false) {
+      // Criterio: >6 semanas en MAV o varios grupos en MRV
+      const weeksObj = appData.config.find(c => c.Parámetro === 'Semanas_MAV_Continuas');
+      let weeks = parseInt(weeksObj?.Valor || 0);
+      const inMAV = appData.volumen.filter(v => v.Estado_Adaptativo.includes('Óptima')).length;
+      const inMRV = appData.volumen.filter(v => v.Estado_Adaptativo.includes('Riesgo')).length;
+
+      if (inMAV >= 3) weeks = Math.max(weeks, 1); // simplificado
+      if (weeksObj) weeksObj.Valor = String(weeks);
+
+      const needsDeload = weeks >= 6 || inMRV >= 2;
+      const badge = document.getElementById('deload-badge');
+      const box = document.getElementById('deload-suggestion');
+
+      if (needsDeload) {
+        badge.classList.remove('hidden');
+        box.classList.remove('hidden');
+        document.getElementById('deload-text').innerHTML = `
+          Detectamos <strong>${weeks} semanas</strong> de volumen alto y/o <strong>${inMRV} grupos en zona MRV</strong>.
+          Se recomienda una semana de descarga: reduce series al 50% y mantén RIR 3-4 para disipar fatiga acumulada y potenciar supercompensación.`;
+        if (!silent) showToast('⚠️ Se sugiere semana de Deload', 'warn');
+      } else {
+        badge.classList.add('hidden');
+        box.classList.add('hidden');
+      }
+      saveData();
+    }
+
+    function aplicarDeload() {
+      appData.volumen.forEach(v => {
+        const current = parseInt(v.Series_Efectivas_Registradas) || 0;
+        v.Series_Efectivas_Registradas = String(Math.floor(current * 0.5));
+        v.Estado_Adaptativo = 'Deload activo';
+      });
+      const weeksObj = appData.config.find(c => c.Parámetro === 'Semanas_MAV_Continuas');
+      if (weeksObj) weeksObj.Valor = '0';
+      saveData();
+      renderVolumenCards();
+      document.getElementById('deload-suggestion').classList.add('hidden');
+      document.getElementById('deload-badge').classList.add('hidden');
+      showToast('✅ Deload aplicado. Volumen reducido 50%');
     }
 
     function startTimer(seconds) {
@@ -360,15 +511,15 @@
       const box = document.getElementById('timer-box');
       const display = document.getElementById('timer-display');
       box.classList.remove('hidden');
-
       let remaining = seconds;
       timerInterval = setInterval(() => {
         const mins = Math.floor(remaining / 60);
         const secs = remaining % 60;
-        display.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        display.innerText = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
         if (remaining <= 0) {
           clearInterval(timerInterval);
-          alert('⏰ ¡Descanso completado! Listos para la siguiente serie.');
+          showToast('⏰ ¡Descanso completado!');
+          if (navigator.vibrate) navigator.vibrate([200,100,200]);
         }
         remaining--;
       }, 1000);
@@ -379,69 +530,148 @@
       document.getElementById('timer-box').classList.add('hidden');
     }
 
-    function renderVolumenTable() {
-      const tbody = document.getElementById('volumen-body');
-      tbody.innerHTML = appData.volumen.map(v => `
-        <tr>
-          <td class="p-3 font-semibold text-white">${v.Grupo_Muscular}</td>
-          <td class="p-3 font-bold text-blue-400">${v.Series_Efectivas_Registradas} series</td>
-          <td class="p-3">${v.MEV_Minimo_Semanal}</td>
-          <td class="p-3 text-emerald-400 font-medium">${v.MAV_Optimo_Semanal}</td>
-          <td class="p-3 text-rose-400">${v.MRV_Maximo_Semanal}</td>
-          <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-bold ${v.Estado_Adaptativo.includes('Óptima') ? 'bg-emerald-950 text-emerald-300' : (v.Estado_Adaptativo.includes('Riesgo') ? 'bg-rose-950 text-rose-300' : 'bg-blue-950 text-blue-300')}">${v.Estado_Adaptativo}</span></td>
-        </tr>
-      `).join('');
+    function renderChart() {
+      const nombre = document.getElementById('select-ejercicio-chart').value;
+      const logs = (appData.logs || []).filter(l => l.Nombre_Ejercicio === nombre).slice(-20);
+      const labels = logs.map((l,i) => `#${i+1}`);
+      const cargas = logs.map(l => l.Carga_Kg);
+      const oneRMs = logs.map(l => l.OneRM_Estimado || calc1RM(l.Carga_Kg, l.Reps_Realizadas));
+
+      const ctx = document.getElementById('progressChart').getContext('2d');
+      if (progressChart) progressChart.destroy();
+
+      progressChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Carga (kg)', data: cargas, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.3, fill: true },
+            { label: '1RM Estimado', data: oneRMs, borderColor: '#10b981', borderDash: [5,5], tension: 0.3, pointRadius: 3 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#94a3b8' } } },
+          scales: {
+            x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+            y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
+          }
+        }
+      });
+
+      // 1RM cards
+      const last = logs[logs.length-1];
+      const best1RM = Math.max(...oneRMs, 0);
+      document.getElementById('oneRM-display').innerHTML = last ? `
+        <div class="bg-slate-900/60 rounded-xl p-3 text-center">
+          <div class="text-[10px] text-slate-400 uppercase">Último 1RM est.</div>
+          <div class="text-xl font-black text-emerald-400">${last.OneRM_Estimado || calc1RM(last.Carga_Kg, last.Reps_Realizadas)} kg</div>
+        </div>
+        <div class="bg-slate-900/60 rounded-xl p-3 text-center">
+          <div class="text-[10px] text-slate-400 uppercase">Mejor 1RM est.</div>
+          <div class="text-xl font-black text-blue-400">${best1RM} kg</div>
+        </div>` : '<p class="text-slate-500 text-sm col-span-2">Registra series para ver progreso</p>';
+    }
+
+    function renderLogs() {
+      const container = document.getElementById('logs-container');
+      const logs = (appData.logs || []).slice().reverse().slice(0, 50);
+      if (!logs.length) {
+        container.innerHTML = '<p class="text-slate-500 text-sm text-center py-8">Aún no hay series registradas</p>';
+        return;
+      }
+      container.innerHTML = logs.map(l => `
+        <div class="bg-slate-900/50 border border-slate-800 rounded-lg p-3 flex flex-wrap justify-between gap-2 text-sm">
+          <div>
+            <span class="font-semibold text-white">${l.Nombre_Ejercicio}</span>
+            <span class="text-slate-500 text-xs ml-2">${l.Fecha}</span>
+          </div>
+          <div class="flex gap-3 text-xs items-center">
+            <span class="text-blue-400 font-bold">${l.Carga_Kg} kg × ${l.Reps_Realizadas}</span>
+            <span class="text-slate-400">RIR ${l.RIR_Reportado}</span>
+            <span class="text-emerald-400">1RM ${l.OneRM_Estimado || '—'} kg</span>
+            ${l.Doble_Progresion_Trigger.includes('Subir') ? '<span class="text-amber-400"><i class="fa-solid fa-arrow-up"></i></span>' : ''}
+          </div>
+        </div>`).join('');
+    }
+
+    function exportLogs(format) {
+      const logs = appData.logs || [];
+      if (!logs.length) { showToast('No hay logs para exportar', 'warn'); return; }
+      let content, mime, filename;
+      if (format === 'csv') {
+        const headers = Object.keys(logs[0]).join(',');
+        const rows = logs.map(l => Object.values(l).map(v => `"${v}"`).join(',')).join('\n');
+        content = headers + '\n' + rows;
+        mime = 'text/csv';
+        filename = 'hipertrofia_logs.csv';
+      } else {
+        content = JSON.stringify(logs, null, 2);
+        mime = 'application/json';
+        filename = 'hipertrofia_logs.json';
+      }
+      const blob = new Blob([content], {type: mime});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+      showToast('Descarga iniciada (' + format.toUpperCase() + ')');
+    }
+
+    function clearLogs() {
+      if (!confirm('¿Borrar todo el historial de series?')) return;
+      appData.logs = [];
+      saveData();
+      renderLogs();
+      renderChart();
+      showToast('Historial eliminado');
     }
 
     function renderCatalogo() {
-      const container = document.getElementById('catalogo-container');
-      container.innerHTML = appData.ejercicios.map(e => `
-        <div class="card p-4 rounded-xl border border-slate-800">
-          <div class="flex justify-between items-start">
-            <h4 class="font-bold text-white">${e.Nombre_Ejercicio}</h4>
-            <span class="text-xs px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 font-semibold">${e.SFR_Tier}</span>
+      document.getElementById('catalogo-container').innerHTML = appData.ejercicios.map(e => `
+        <div class="card p-3 rounded-xl border border-slate-800">
+          <div class="flex justify-between items-start gap-2">
+            <h4 class="font-bold text-white text-sm">${e.Nombre_Ejercicio}</h4>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-900/60 text-blue-300 font-semibold shrink-0">${e.SFR_Tier}</span>
           </div>
-          <p class="text-xs text-slate-400 mt-1">Músculo: <strong class="text-slate-200">${e.Grupo_Principal}</strong> | Equipo: ${e.Equipamiento}</p>
-          <p class="text-xs text-emerald-400 mt-1"><i class="fa-solid fa-arrows-left-right-to-line"></i> Sobrecarga: ${e.Perfil_Resistencia}</p>
-        </div>
-      `).join('');
+          <p class="text-xs text-slate-400 mt-1">${e.Grupo_Principal} · ${e.Equipamiento}</p>
+          <p class="text-xs text-emerald-400 mt-0.5"><i class="fa-solid fa-arrows-left-right-to-line"></i> ${e.Perfil_Resistencia}</p>
+        </div>`).join('');
     }
 
     function guardarCustom(e) {
       e.preventDefault();
-      const payload = {
-        nombre: document.getElementById('cust-nombre').value,
-        grupoPrincipal: document.getElementById('cust-grupo').value,
-        equipamiento: document.getElementById('cust-equip').value,
-        perfilResistencia: document.getElementById('cust-perfil').value
-      };
-      const newId = 'EJ-' + Date.now().toString().slice(-4);
+      const newId = 'EJ-' + Date.now().toString().slice(-5);
       appData.ejercicios.push({
         ID_Ejercicio: newId,
-        Nombre_Ejercicio: payload.nombre,
-        Grupo_Principal: payload.grupoPrincipal,
+        Nombre_Ejercicio: document.getElementById('cust-nombre').value,
+        Grupo_Principal: document.getElementById('cust-grupo').value,
         Grupo_Secundario: 'Ninguno',
-        Equipamiento: payload.equipamiento,
-        Perfil_Resistencia: payload.perfilResistencia,
+        Equipamiento: document.getElementById('cust-equip').value,
+        Perfil_Resistencia: document.getElementById('cust-perfil').value,
         SFR_Tier: 'Tier A (Custom)',
         Descanso_Base_Seg: '120',
         Es_Custom: 'Sí'
       });
       saveData();
-      alert('✅ Ejercicio añadido al catálogo local.');
+      showToast('✅ Ejercicio añadido');
       document.getElementById('form-custom').reset();
       renderCatalogo();
     }
 
     function switchTab(tabId) {
-      ['tab-entrenar', 'tab-volumen', 'tab-ejercicios', 'tab-custom'].forEach(id => {
+      ['tab-entrenar','tab-volumen','tab-progreso','tab-historial','tab-ejercicios','tab-custom'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
-        document.getElementById(`btn-${id}`).classList.remove('bg-blue-600', 'text-white');
-        document.getElementById(`btn-${id}`).classList.add('text-slate-400');
+        const btn = document.getElementById('btn-' + id);
+        if (btn) { btn.classList.remove('bg-blue-600','text-white'); btn.classList.add('text-slate-400'); }
       });
       document.getElementById(tabId).classList.remove('hidden');
-      document.getElementById(`btn-${tabId}`).classList.add('bg-blue-600', 'text-white');
-      document.getElementById(`btn-${tabId}`).classList.remove('text-slate-400');
+      const activeBtn = document.getElementById('btn-' + tabId);
+      if (activeBtn) { activeBtn.classList.add('bg-blue-600','text-white'); activeBtn.classList.remove('text-slate-400'); }
+      if (tabId === 'tab-progreso') renderChart();
+      if (tabId === 'tab-historial') renderLogs();
+      if (tabId === 'tab-volumen') renderVolumenCards();
     }
   </script>
 </body>
